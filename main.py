@@ -5,7 +5,7 @@ import paho.mqtt.client as mqtt
 
 import models
 from database import init_database
-from handler.sensor_config_handler import SensorConfigHandler
+from handler.sunrise_sunset_handler import SunriseSunsetEventHandler
 from mqtt import MQTTClient
 from setting import settings
 
@@ -19,7 +19,7 @@ mqtt_client = MQTTClient(
     settings.mqtt_password
 )
 
-sensor_config_handler = SensorConfigHandler(mqtt_client)
+sunrise_sunset_handler = SunriseSunsetEventHandler(mqtt_client)
 
 
 def on_connect(client, userdata, flags, reason_code, properties):
@@ -34,9 +34,12 @@ def on_message(client, userdata, msg):
     topic = msg.topic
     message = msg.payload.decode('utf-8')
     logging.info(f"Received message from [{topic}] - {message}")
-    match topic.split("/")[-1]:
-        case "sensor":
-            sensor_config_handler.handle_sensor_config(models.SensorConfig.model_validate_json(message))
+    event = models.Event.model_validate_json(message)
+    match event.type:
+        case models.EventType.SUNRISE:
+            sunrise_sunset_handler.handle_sunrise(event.sensor_id)
+        case models.EventType.SUNSET:
+            sunrise_sunset_handler.handle_sunset(event.sensor_id)
 
 
 async def main():
