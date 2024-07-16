@@ -39,7 +39,14 @@ class MQTTClient:
             options: SubscribeOptions | None = None,
             properties: Properties | None = None
     ):
-        self.client.subscribe(topic, qos, options, properties)
+        logging.info(f"Subscribing to topic: [{topic}]")
+        result, mid = self.client.subscribe(topic, qos, options, properties)
+        if result == mqtt.MQTT_ERR_SUCCESS:
+            logging.info(f"Subscribed to topic: [{topic}]")
+            return True
+        else:
+            logging.error(f"Error subscribing to topic: [{topic}] {result} {mid}")
+            return False
 
     def publish(
             self,
@@ -52,9 +59,19 @@ class MQTTClient:
         logging.info(
             f"Publishing to MQTT broker: topic={topic} payload={payload} qos={qos} retain={retain} properties={properties}")
         try:
-            self.client.publish(topic=topic, payload=payload, qos=qos, retain=retain, properties=properties)
-            logging.info(f"Message published")
-            return True
+            result_code, mid = self.client.publish(
+                topic=topic,
+                payload=payload,
+                qos=qos,
+                retain=retain,
+                properties=properties
+            )
+            if result_code == mqtt.MQTT_ERR_SUCCESS:
+                logging.info(f"Published to topic: [{topic}]")
+                return True
+            else:
+                logging.error(f"Error publishing to topic: [{topic}] {result_code} {mid}")
+                return False
         except Exception as e:
             logging.error(f"Error publishing to MQTT broker: {e}")
             return False
